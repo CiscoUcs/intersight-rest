@@ -1,0 +1,24 @@
+# Node Modules Folder
+node_modules/
+
+# PyCache Folder
+__pycache__/
+
+# Python Build Folder
+build/
+
+# Python Dist Folder
+dist/
+
+# Python Egg Folder
+*.egg-info/
+
+# Keys Folder
+keys/
+
+# Package Lock File
+package-lock.json
+
+# Test Files
+test.js
+test.py
