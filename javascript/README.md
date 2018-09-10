@@ -9,18 +9,15 @@ intersightREST(<options>);
 
 | Option | Format | Value |
 | ------ | ------ | ------ |
-| resource_path | &lt;String&gt; | Resource Path from https://intersight.com/apidocs |
-| query_params | &lt;Object&gt; | Query Parameters from Resource Path GET |
+| httpMethod | &lt;String&gt; | HTTP Verb [ GET \| POST \| PATCH \| DELETE ] |
+| resourcePath | &lt;String&gt; | Resource Path from https://intersight.com/apidocs |
+| queryParams | &lt;Object&gt; | Query Parameters from Resource Path GET |
 | body | &lt;Object&gt; | Body Parameters from Resource Path POST|
 | moid | &lt;String&gt; | MOID of Object to be Modified |
+| name | &lt;String&gt; | Name of Object to be Modified (See Notes) |
 
-&nbsp;  
-
-The HTTP verbs will be assumed as follows:
- - GET: &lt;resource_path&gt;
- - GET: &lt;resource_path&gt; + &lt;query_params&gt;
- - POST: &lt;resource_path&gt; + &lt;body&gt;
- - PATCH: &lt;resource_path&gt; + &lt;body&gt; + &lt;moid&gt;
+<sup>1</sup> ***name*** will be ignored if ***moid*** is set.  
+<sup>2</sup> ***name*** is case sensitive.  
 
 More information about Intersight is available at: https://intersight.com  
 Details on the RESTful API and documentation: https://intersight.com/apidocs  
@@ -48,12 +45,14 @@ const resourcePath = '/ntp/Policies';
 // GET EXAMPLE
 /* Set GET Options */
 options = {
-    resource_path: resourcePath,
-    query_params: queryParams
+    httpMethod: 'get',
+    resourcePath: resourcePath,
+    queryParams: queryParams
 };
 
-isREST.intersightREST(options).then(body => {
-    console.log(body);
+/* Send GET Request */
+isREST.intersightREST(options).then(response => {
+    console.log(response.body);
 }).catch(err => {
     console.log('Error: ', err);
 });
@@ -91,12 +90,14 @@ postBody = {
 
 /* Set POST Options */
 options = {
-    resource_path: resourcePath,
+    httpMethod: 'post',
+    resourcePath: resourcePath,
     body: postBody
 };
 
-isREST.intersightREST(options).then(body => {
-    console.log(body);
+/* Send POST Request */
+isREST.intersightREST(options).then(response => {
+    console.log(response.body);
 }).catch(err => {
     console.log('Error: ', err);
 });
@@ -104,23 +105,73 @@ isREST.intersightREST(options).then(body => {
 /* NOTE: intersightREST Returns a JS Promise */
 
 // PATCH EXAMPLE
-/* Set Object MOID to be Modified */
-patchMoid = '6b1727fa686c873463b8163e';
-
 /* Assemble PATCH Body */
 patchBody = {
     NtpServers: ["10.10.10.10"]
 };
 
+/* Option #1: PATCH by Object MOID */
+
+/* Set Object MOID to be Modified */
+patchMoid = '6b1727fa686c873463b8163e';
+
 /* Set PATCH Options */
 options = {
-    resource_path: resourcePath,
+    httpMethod: 'patch',
+    resourcePath: resourcePath,
     body: patchBody,
     moid: patchMoid
 };
 
-isREST.intersightREST(options).then(body => {
-    console.log(body);
+/* Option #2: PATCH by Object NAME */
+
+/* Set Object NAME to be Modified */
+patchName = 'Test-NTP';
+
+/* Set PATCH Options */
+options = {
+    httpMethod: 'patch',
+    resourcePath: resourcePath,
+    body: patchBody,
+    name: patchName
+};
+
+/* Send PATCH Request */
+isREST.intersightREST(options).then(response => {
+    console.log(response.body);
+}).catch(err => {
+    console.log('Error: ', err);
+
+/* NOTE: intersightREST Returns a JS Promise */
+
+// DELETE EXAMPLE
+/* Option #1: DELETE by Object MOID */
+
+/* Set Object MOID to be Deleted */
+deleteMoid = '6b1727fa686c873463b8163e';
+
+/* Set DELETE Options */
+options = {
+    httpMethod: 'delete',
+    resourcePath: resourcePath,
+    moid: deleteMoid
+};
+
+/* Option #2: DELETE by Object NAME */
+
+/* Set Object NAME to be Deleted */
+deleteName = 'Test-NTP';
+
+/* Set DELETE Options */
+options = {
+    httpMethod: 'delete',
+    resourcePath: resourcePath,
+    name: deleteName
+};
+
+/* Send DELETE Request */
+isREST.intersightREST(options).then(response => {
+    console.log(response.statusCode);
 }).catch(err => {
     console.log('Error: ', err);
 

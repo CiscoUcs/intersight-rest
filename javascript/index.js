@@ -2,7 +2,7 @@
  * Intersight REST API Module
  * @module intersight-rest
  * Author: Matthew Garrett
- * Contributors: David Soper, Chris Gascoigne
+ * Contributors: David Soper, Chris Gascoigne, John McDonough
  * Email: mgarrett0402@gmail.com
  * 
  * Copyright (c) 2018 Cisco and/or its affiliates.
@@ -26,91 +26,91 @@ const url = require('url');
 const qs = require('qs');
 
 const host = url.parse('https://intersight.com/api/v1');
-const digest_algorithm = 'rsa-sha256';
+const digestAlgorithm = 'rsa-sha256';
 
-var private_key = null;
-var public_key = null;
+var privateKey = null;
+var publicKey = null;
 
 /**
  * Set RSA public key.
- * @function set_public_key
+ * @function set_publicKey
  * @public
- * @param  {String} data  RSA public key.
+ * @param  {String} pubKey  RSA public key.
  */
-const setPublicKey = function set_public_key(pub_key) {
-    public_key = pub_key;
+const setPublicKey = function set_publicKey(pubKey) {
+    publicKey = pubKey;
 }
 
 /**
  * Set RSA private key.
- * @function set_private_key
+ * @function set_privateKey
  * @public
- * @param  {String} data  RSA private key.
+ * @param  {String} prvKey  RSA private key.
  */
-const setPrivateKey = function set_private_key(prv_key) {
-    private_key = prv_key;
+const setPrivateKey = function set_privateKey(prvKey) {
+    privateKey = prvKey;
 }
 
 /**
  * Generates a SHA256 digest from a JSON Object.
- * @function get_sha256_digest
+ * @function getSHA256Digest
  * @private
- * @param  {Object} data  JSON object.
- * @return {string}       Base64 formatted string.
+ * @param  {Object} data    JSON object.
+ * @return {string}         Base64 formatted string.
  */
-function get_sha256_digest(data) {
+function getSHA256Digest(data) {
     return digest = crypto.createHash('sha256').update(JSON.stringify(data), 'utf8').digest();
 }
 
 /**
  * Generates an RSA Signed SHA256 digest from a String.
- * @function get_rsasig_sha256_b64encode
+ * @function getRSASigSHA256b64Encode
  * @private
- * @param  {String} data         String to be signed & hashed.
- * @return {string}              Base64 formatted string.
+ * @param  {String} data    String to be signed & hashed.
+ * @return {string}         Base64 formatted string.
  */
-function get_rsasig_sha256_b64encode(data) {
-    var key_data = {
-        key: private_key,
+function getRSASigSHA256b64Encode(data) {
+    var keyData = {
+        key: privateKey,
         padding: crypto.constants.RSA_PKCS1_PADDING
     };
 
-    return sign = crypto.createSign('RSA-SHA256').update(data).sign(key_data, 'base64');
+    return sign = crypto.createSign('RSA-SHA256').update(data).sign(keyData, 'base64');
 }
 
 /**
  * Assmebled an Intersight formatted authorization header.
- * @function get_auth_header
+ * @function getAuthHeader
  * @private
  * @param  {Object} hdrs        Object with header keys.
- * @param  {String} signed_msg  Base64 encoded SHA256 hashed body.
+ * @param  {String} signedMsg   Base64 encoded SHA256 hashed body.
  * @return {string}             Concatenated authorization header.
  */
-function get_auth_header(hdrs, signed_msg) {
-    var auth_str = "Signature";
+function getAuthHeader(hdrs, signedMsg) {
+    var authStr = "Signature";
 
-    auth_str = auth_str + " " + "keyId=\"" + public_key + "\"," + "algorithm=\"" + digest_algorithm + "\"," + "headers=\"(request-target)";
+    authStr = authStr + " " + "keyId=\"" + publicKey + "\"," + "algorithm=\"" + digestAlgorithm + "\"," + "headers=\"(request-target)";
 
     for (var key in hdrs) {
-        auth_str = auth_str + " " + key.toLowerCase();
+        authStr = authStr + " " + key.toLowerCase();
     }
-    auth_str = auth_str + "\"";
+    authStr = authStr + "\"";
 
-    auth_str = auth_str + "," + "signature=\"" + signed_msg + "\"";
+    authStr = authStr + "," + "signature=\"" + signedMsg + "\"";
 
-    return auth_str;
+    return authStr;
 }
 
 /**
  * Concatenates Intersight headers in preparation to be RSA signed.
- * @function prepare_str_to_sign
+ * @function prepStringToSign
  * @private
- * @param  {String} req_tgt  HTTP Method + endpoint.
- * @param  {Object} hdrs     Object with header keys.
- * @return {string}          Concatenated header authorization string.
+ * @param  {String} reqTarget   HTTP Method + endpoint.
+ * @param  {Object} hdrs        Object with header keys.
+ * @return {string}             Concatenated header authorization string.
  */
-function prepare_str_to_sign(req_tgt, hdrs) {
-    var ss = "(request-target): " + req_tgt.toLowerCase() + "\n";
+function prepStringToSign(reqTarget, hdrs) {
+    var ss = "(request-target): " + reqTarget.toLowerCase() + "\n";
 
     var length = Object.keys(hdrs).length;
 
@@ -128,51 +128,88 @@ function prepare_str_to_sign(req_tgt, hdrs) {
 
 /**
  * Generated a GMT formatted Date.
- * @function get_gmt_date
+ * @function getGMTDate
  * @private
  * @return {String} GMT formatted Date string.
  */
-function get_gmt_date() {
+function getGMTDate() {
     return new Date().toGMTString();
 }
 
 /**
  * Callback for sending HTTP requests.
- * @function make_request
+ * @function makeRequest
  * @private
- * @param  {Object} request_data  Requests formatted object.
- * @return {Object}               Javascript Object from JSON response.
+ * @param  {Object} requestData     Requests formatted object.
+ * @return {Object}                 Javascript Object from JSON response.
  */
-function make_request(request_data) {
-    return request(request_data).then(body => {
-        return JSON.parse(body);
+function makeRequest(requestData) {
+    return request(requestData).then(response => {
+        return response.toJSON();
     });
+}
+
+/**
+ * Retrieve an Intersight object moid by name.
+ * @function getMoidByName
+ * @private
+ * @param  {String} resourcePath    Intersight resource path e.g. '/ntp/Policies'.
+ * @param  {String} targetName      Name of target Intersight Object.
+ * @return {Object}                 MOID for target Intersight Object.
+ */
+async function getMoidByName(resourcePath, targetName) {
+    var locatedMoid = "";
+
+    var queryParams = {
+        "$filter": `Name eq '${targetName}'`
+    };
+
+    var options = {
+        "httpMethod": "GET",
+        "resourcePath": resourcePath,
+        "queryParams": queryParams
+    };
+
+    var response = await intersightREST(options);
+
+    if(JSON.parse(response.body).Results != null) {
+        locatedMoid = JSON.parse(response.body).Results[0].Moid;
+    } else {
+        return Promise.reject(`Object with name "${targetName}" not found!`);
+    }
+
+    return locatedMoid;
 }
 
 /**
  * Invoke the Intersight API.
  * @function intersight_call
  * @public
- * @param  {String} resource_path  Intersight resource path e.g. '/ntp/Policies'.
- * @param  {Object} query_params   Javascript object with query string parameters as key/value pairs.
- * @param  {Object} body           Javascript object with Intersight data.
- * @param  {String} moid           Intersight object MOID.
- * @return {Promise}               Javascript Promise for HTTP response body.
+ * @param  {String} resourcePath    Intersight resource path e.g. '/ntp/Policies'.
+ * @param  {Object} queryParams     Javascript object with query string parameters as key/value pairs.
+ * @param  {Object} body            Javascript object with Intersight data.
+ * @param  {String} moid            Intersight object MOID.
+ * @return {Promise}                Javascript Promise for HTTP response body.
  */
-const intersightREST = function intersight_call({resource_path="", query_params={}, body={}, moid=null} = {}) {
-    var target_host = host.hostname;
-    var target_path = host.pathname;
-    var query_path = "";
-    var method;
+const intersightREST = async function intersight_call({httpMethod="", resourcePath="", queryParams={}, body={}, moid=null, name=null} = {}) {
+    var targetHost = host.hostname;
+    var targetPath = host.pathname;
+    var queryPath = "";
+    var method = httpMethod.toUpperCase();
+
+    // Verify an accepted HTTP verb was chosen
+    if(!['GET','POST','PATCH','DELETE'].includes(method)) {
+        return Promise.reject('Please select a valid HTTP verb (GET/POST/PATCH/DELETE)');
+    }
 
     // Verify the resource path isn't empy & is a valid String
-    if(resource_path != "" && resource_path.constructor != String) {
-        return Promise.reject('The *resource_path* value is required and must be of type "String"');
+    if(resourcePath != "" && resourcePath.constructor != String) {
+        return Promise.reject('The *resourcePath* value is required and must be of type "String"');
     }
 
     // Verify the query parameters isn't empy & is a valid Javascript Object
-    if(Object.keys(query_params).length != 0 && query_params.constructor != Object) {
-        return Promise.reject('The *query_params* value must be of type "Object"');
+    if(Object.keys(queryParams).length != 0 && queryParams.constructor != Object) {
+        return Promise.reject('The *queryParams* value must be of type "Object"');
     }
 
     // Verify the body isn't empy & is a valid Javascript Object
@@ -186,79 +223,87 @@ const intersightREST = function intersight_call({resource_path="", query_params=
     }
 
     // Verify the public key is set
-    if(public_key == null) {
+    if(publicKey == null) {
         return Promise.reject('Public Key not set!');
     }
 
     // Verify the private key is set
-    if(private_key == null) {
+    if(privateKey == null) {
         return Promise.reject('Private Key not set!');
     }
 
-    // Determine HTTP Method for requests call
-    if(Object.keys(body).length > 0){
-        if(moid != null) {
-            method = 'PATCH';
-            resource_path += "/" + moid;
-        }
-        else {
-            method = 'POST';
+    // Set additional parameters based on HTTP Verb
+    if(Object.keys(queryParams).length != 0) {
+        queryPath = "?" + qs.stringify(queryParams);
+    }
+
+    if(method == "PATCH" || method == "DELETE") {
+        if(moid == null) {
+            if(name != null) {
+                if(name.constructor == String) {
+                    moid = await getMoidByName(resourcePath, name);
+                }
+                else {
+                    return Promise.reject('The *moid_from_name* value must be of type "String"');
+                }
+            }
+            else {
+                return Promise.reject('Must set either *moid* or *moid_from_name* with "PATCH/DELETE!"');
+            }
         }
     }
-    else {
-        method = 'GET';
 
-        if(Object.keys(query_params).length != 0) {
-            query_path = "?" + qs.stringify(query_params);
-        }
+    if (method != "POST" && moid != null) {
+        resourcePath += "/" + moid;
     }
 
     // Concatenate URLs for headers
-    var target_url = host.href + resource_path;
-    var request_target = method + " " + target_path + resource_path + query_path;
+    var targetUrl = host.href + resourcePath;
+    var requestTarget = method + " " + targetPath + resourcePath + queryPath;
 
     // Get the current GMT Date/Time
-    var cdate = get_gmt_date();
+    var currDate = getGMTDate();
 
     // Generate the body digest
-    var b64_body_digest = get_sha256_digest(body);
+    var b64BodyDigest = getSHA256Digest(body);
 
     // Generate the authorization header
-    var auth_header = {
-        'Date' : cdate,
-        'Host' : target_host,
-        'Digest' : 'SHA-256=' + b64_body_digest.toString('base64')
+    var authHeader = {
+        'Date' : currDate,
+        'Host' : targetHost,
+        'Digest' : 'SHA-256=' + b64BodyDigest.toString('base64')
     };
 
-    var string_to_sign = prepare_str_to_sign(request_target, auth_header);
-    var b64_signed_msg = get_rsasig_sha256_b64encode(string_to_sign);
-    var header_auth = get_auth_header(auth_header, b64_signed_msg);
+    var stringToSign = prepStringToSign(requestTarget, authHeader);
+    var b64SignedMsg = getRSASigSHA256b64Encode(stringToSign);
+    var headerAuth = getAuthHeader(authHeader, b64SignedMsg);
 
     // Generate the HTTP requests header
     var request_header = {
         'Accept':           `application/json`,
-        'Host':             `${target_host}`,
-        'Date':             `${cdate}`,
-        'Digest':           `SHA-256=${b64_body_digest.toString('base64')}`,
-        'Authorization':    `${header_auth}`,
+        'Host':             `${targetHost}`,
+        'Date':             `${currDate}`,
+        'Digest':           `SHA-256=${b64BodyDigest.toString('base64')}`,
+        'Authorization':    `${headerAuth}`,
     };
 
     // Generate the HTTP request options
-    var request_options = {
+    var requestOptions = {
         method: method,
-        url: target_url,
-        qs: query_params,
+        url: targetUrl,
+        qs: queryParams,
         body: JSON.stringify(body),
-        headers: request_header
+        headers: request_header,
+        resolveWithFullResponse: true
     };
 
     // Make HTTP request & return a Javascript Promise
-    return make_request(request_options);
+    return makeRequest(requestOptions);
 }
 
 // Export the module functions
 module.exports = {
     intersightREST,
     setPublicKey,
-    setPrivateKey
+    setPrivateKey,
 };

@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="intersight-rest",
-    version="1.0.7",
+    version="1.1.2",
     author="Matthew Garrett",
     author_email="mgarrett0402@gmail.com",
     py_modules=['intersight_rest',],

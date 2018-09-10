@@ -1,7 +1,7 @@
 """
 Intersight REST API Module
 Author: Matthew Garrett
-Contributors: David Soper, Chris Gascoigne
+Contributors: David Soper, Chris Gascoigne, John McDonough
 Email: mgarrett0402@gmail.com
 
 Copyright (c) 2018 Cisco and/or its affiliates.
@@ -82,9 +82,6 @@ def get_rsasig_b64encode(digest):
     signer = PKCS1_v1_5.new(rsakey)
     sign = signer.sign(digest)
 
-    # print("SIGN BEFORE B64 ENCODE:")
-    # print(sign)
-
     return b64encode(sign)
 
 def get_auth_header(hdrs, signed_msg):
@@ -131,6 +128,33 @@ def prepare_str_to_sign(req_tgt, hdrs):
 
     return ss
 
+def get_moid_by_name(resource_path, target_name):
+    """
+    Retrieve an Intersight object moid by name
+
+    :param resource_path: intersight resource path e.g. '/ntp/Policies'
+    :param target_name: intersight object name
+    :return: json http response object
+    """
+    query_params = {
+        "$filter": "Name eq '{0}'".format(target_name)
+    }
+
+    options = {
+        "http_method": "GET",
+        "resource_path": resource_path,
+        "query_params": query_params
+    }
+
+    get_moid = intersight_call(**options)
+
+    if(get_moid.json()['Results'] != None):
+        located_moid = get_moid.json()['Results'][0]['Moid']
+    else:
+        raise KeyError('Object with name "{0}" not found!'.format(target_name))
+
+    return located_moid
+
 def get_gmt_date():
     """
     Generated a GMT formatted Date
@@ -140,7 +164,7 @@ def get_gmt_date():
 
     return formatdate(timeval=None, localtime=False, usegmt=True)
 
-def intersight_call(resource_path="", query_params={}, body={}, moid=None):
+def intersight_call(http_method="", resource_path="", query_params={}, body={}, moid=None, name=None):
     """
     Invoke the Intersight API
 
@@ -148,51 +172,61 @@ def intersight_call(resource_path="", query_params={}, body={}, moid=None):
     :param query_params: dictionary object with query string parameters as key/value pairs
     :param body: dictionary object with intersight data
     :param moid: intersight object moid
+    :param name: intersight object name
     :return: json http response object
     """
 
     target_host = urlparse(host).netloc
     target_path = urlparse(host).path
     query_path = ""
-    method = ""
+    method = http_method.upper()
+
+    # Verify an accepted HTTP verb was chosen
+    if(method not in ['GET','POST','PATCH','DELETE']):
+        raise ValueError('Please select a valid HTTP verb (GET/POST/PATCH/DELETE)')
 
     # Verify the resource path isn't empy & is a valid String
     if(resource_path != "" and type(resource_path) is not str):
-        return ('The *resource_path* value is required and must be of type "String"')
+        raise TypeError('The *resource_path* value is required and must be of type "String"')
 
     # Verify the query parameters isn't empy & is a valid Javascript Object
     if(query_params != {} and type(query_params) is not dict):
-        return ('The *query_params* value must be of type "Object"')
+        raise TypeError('The *query_params* value must be of type "Object"')
 
     # Verify the body isn't empy & is a valid Javascript Object
     if(body != {} and type(body) is not dict):
-        return ('The *body* value must be of type "Object"')
+        raise TypeError('The *body* value must be of type "Object"')
 
     # Verify the MOID is not null & of proper length
     if(moid != None and len(moid.encode('utf-8')) != 24):
-        return ('Invalid *moid* value!')
+        raise ValueError('Invalid *moid* value!')
 
     # Verify the public key is set
     if(public_key == None):
-        return ('Public Key not set!')
+        raise ValueError('Public Key not set!')
 
     # Verify the private key is set
     if(private_key == None):
-        return ('Private Key not set!')
+        raise ValueError('Private Key not set!')
 
-    # Determine HTTP Method for requests call
-    if(len(body) > 0):
-        if(moid != None):
-            method = 'PATCH'
-            resource_path += "/" + moid
-        else:
-            method = 'POST'
-    else:
-        method = 'GET'
+    # Check for query_params, encode, and concatenate onto URL
+    if(query_params != {}):
+        query_path = "?" + urlencode(query_params, quote_via=quote)
 
-        if(query_params != {}):
-            # query_path = "?" + urlencode(query_params)
-            query_path = "?" + urlencode(query_params, quote_via=quote)
+    # Handle PATCH/DELETE by Object "name" instead of "moid"
+    if(method == "PATCH" or method == "DELETE"):
+        if(moid == None):
+            if(name != None):
+                if(type(name) is str):
+                    moid = get_moid_by_name(resource_path, name)
+                else:
+                    raise TypeError('The *name* value must be of type "String"')
+            else:
+                raise ValueError('Must set either *moid* or *name* with "PATCH/DELETE!"')
+
+    # Check for moid and concatenate onto URL
+    if(method != "POST" and moid != None):
+        resource_path += "/" + moid
 
     # Concatenate URLs for headers
     target_url = host + resource_path
@@ -226,12 +260,19 @@ def intersight_call(resource_path="", query_params={}, body={}, moid=None):
         'Authorization':    '{0}'.format(auth_header),
     }
 
-    # Make HTTP request & return a Javascript Promise
-    if(method == "GET"):
-        response = requests.get(target_url, headers=request_header, json=body, params=urlencode(query_params, quote_via=quote))
-    elif(method == "POST"):
-        response = requests.post(target_url, headers=request_header, json=body)
-    elif(method == "PATCH"):
-        response = requests.patch(target_url, headers=request_header, json=body)
+    # Format HTTP request
+    http_request = requests.Request(
+        method = method,
+        url = target_url,
+        headers = request_header,
+        json = body,
+        params = urlencode(query_params, quote_via=quote)
+    )
 
-    return response.json()
+    # Prepare & send HTTP request
+    prepared_request = http_request.prepare()
+    http_session = requests.Session()
+    response = http_session.send(prepared_request)
+
+    # Return requests.Response
+    return response
