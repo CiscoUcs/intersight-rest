@@ -15,6 +15,7 @@ intersightREST(<options>);
 | body | &lt;Object&gt; | Body Parameters from Resource Path POST|
 | moid | &lt;String&gt; | MOID of Object to be Modified |
 | name | &lt;String&gt; | Name of Object to be Modified (See Notes) |
+| proxy | &lt;String&gt; | Proxy Server Address [ proto://\<address\>:\<port\> ] |
 
 <sup>1</sup> ***name*** will be ignored if ***moid*** is set.  
 <sup>2</sup> ***name*** is case sensitive.  

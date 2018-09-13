@@ -151,7 +151,7 @@ def get_moid_by_name(resource_path, target_name):
     if(get_moid.json()['Results'] != None):
         located_moid = get_moid.json()['Results'][0]['Moid']
     else:
-        raise KeyError('Object with name "{0}" not found!'.format(target_name))
+        raise KeyError('Intersight object with name "{0}" not found!'.format(target_name))
 
     return located_moid
 
@@ -164,7 +164,7 @@ def get_gmt_date():
 
     return formatdate(timeval=None, localtime=False, usegmt=True)
 
-def intersight_call(http_method="", resource_path="", query_params={}, body={}, moid=None, name=None):
+def intersight_call(http_method="", resource_path="", query_params={}, body={}, moid=None, name=None, proxy=None):
     """
     Invoke the Intersight API
 
@@ -185,17 +185,24 @@ def intersight_call(http_method="", resource_path="", query_params={}, body={}, 
     if(method not in ['GET','POST','PATCH','DELETE']):
         raise ValueError('Please select a valid HTTP verb (GET/POST/PATCH/DELETE)')
 
-    # Verify the resource path isn't empy & is a valid String
+    # Verify the resource path isn't empy & is a valid <str> object
     if(resource_path != "" and type(resource_path) is not str):
-        raise TypeError('The *resource_path* value is required and must be of type "String"')
+        raise TypeError('The *resource_path* value is required and must be of type "<str>"')
 
-    # Verify the query parameters isn't empy & is a valid Javascript Object
+    # Verify the query parameters isn't empy & is a valid <dict> object
     if(query_params != {} and type(query_params) is not dict):
-        raise TypeError('The *query_params* value must be of type "Object"')
+        raise TypeError('The *query_params* value must be of type "<dict>"')
 
-    # Verify the body isn't empy & is a valid Javascript Object
+    # Verify the body isn't empy & is a valid <dict> object
     if(body != {} and type(body) is not dict):
-        raise TypeError('The *body* value must be of type "Object"')
+        raise TypeError('The *body* value must be of type "<dict>"')
+
+    # Verify that proxy is either null, or is a valid <str> object & create https_proxy object
+    if(proxy != None):
+        if(type(proxy) is not str):
+            raise TypeError('The *proxy* value must be of type "<str>"')
+        else:
+            https_proxy = { "https": proxy }
 
     # Verify the MOID is not null & of proper length
     if(moid != None and len(moid.encode('utf-8')) != 24):
@@ -220,7 +227,7 @@ def intersight_call(http_method="", resource_path="", query_params={}, body={}, 
                 if(type(name) is str):
                     moid = get_moid_by_name(resource_path, name)
                 else:
-                    raise TypeError('The *name* value must be of type "String"')
+                    raise TypeError('The *name* value must be of type "<str>"')
             else:
                 raise ValueError('Must set either *moid* or *name* with "PATCH/DELETE!"')
 
@@ -272,7 +279,7 @@ def intersight_call(http_method="", resource_path="", query_params={}, body={}, 
     # Prepare & send HTTP request
     prepared_request = http_request.prepare()
     http_session = requests.Session()
-    response = http_session.send(prepared_request)
+    response = http_session.send(prepared_request, proxies=https_proxy)
 
     # Return requests.Response
     return response

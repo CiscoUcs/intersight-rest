@@ -191,7 +191,7 @@ async function getMoidByName(resourcePath, targetName) {
  * @param  {String} moid            Intersight object MOID.
  * @return {Promise}                Javascript Promise for HTTP response body.
  */
-const intersightREST = async function intersight_call({httpMethod="", resourcePath="", queryParams={}, body={}, moid=null, name=null} = {}) {
+const intersightREST = async function intersight_call({httpMethod="", resourcePath="", queryParams={}, body={}, moid=null, name=null, proxy=null} = {}) {
     var targetHost = host.hostname;
     var targetPath = host.pathname;
     var queryPath = "";
@@ -202,7 +202,7 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
         return Promise.reject('Please select a valid HTTP verb (GET/POST/PATCH/DELETE)');
     }
 
-    // Verify the resource path isn't empy & is a valid String
+    // Verify the resource path isn't empy & is a valid String Object
     if(resourcePath != "" && resourcePath.constructor != String) {
         return Promise.reject('The *resourcePath* value is required and must be of type "String"');
     }
@@ -215,6 +215,11 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
     // Verify the body isn't empy & is a valid Javascript Object
     if(Object.keys(body).length != 0 && body.constructor != Object) {
         return Promise.reject('The *body* value must be of type "Object"');
+    }
+
+    // Verify that proxy is either null, or is a valid String Object
+    if(proxy != null && proxy.constructor != String) {
+        return Promise.reject('The *proxy* value must be of type "String"');
     }
 
     // Verify the MOID is not null & of proper length
@@ -294,7 +299,8 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
         qs: queryParams,
         body: JSON.stringify(body),
         headers: request_header,
-        resolveWithFullResponse: true
+        resolveWithFullResponse: true,
+        proxy: proxy
     };
 
     // Make HTTP request & return a Javascript Promise

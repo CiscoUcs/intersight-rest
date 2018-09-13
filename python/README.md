@@ -15,6 +15,7 @@ intersight_call(**options);
 | body | &lt;Dict&gt; | Body Parameters from Resource Path POST|
 | moid | &lt;String&gt; | MOID of Object to be Modified |
 | name | &lt;String&gt; | Name of Object to be Modified (See Notes) |
+| proxy | &lt;String&gt; | Proxy Server Address [ proto://\<address\>:\<port\> ] |
 
 <sup>1</sup> ***name*** will be ignored if ***moid*** is set.  
 <sup>2</sup> ***name*** is case sensitive.  
@@ -22,7 +23,7 @@ intersight_call(**options);
 More information about Intersight is available at: https://intersight.com  
 Details on the RESTful API and documentation: https://intersight.com/apidocs  
 
-### **NPM Installation:**
+### **PIP Installation:**
 
 ```sh
 $ pip install intersight-rest
@@ -57,7 +58,7 @@ results = isREST.intersight_call(**options)
 print("Status Code: " + str(results.status_code))
 print(json.dumps(results.json(), indent=4))
 
-#-- NOTE: intersight_call Returns a "requests.Response" Type --#
+#-- NOTE: intersight_call Returns a "requests.Response" Object --#
 
 # GET "query_params" Examples
 #-- Example query_params returning the top 1 result(s) --#
@@ -100,7 +101,7 @@ results = isREST.intersight_call(**options)
 print("Status Code: " + str(results.status_code))
 print(json.dumps(results.json(), indent=4))
 
-#-- NOTE: intersight_call Returns a "requests.Response" Type --#
+#-- NOTE: intersight_call Returns a "requests.Response" Object --#
 
 # PATCH EXAMPLE
 #-- Assemble PATCH Body --#
@@ -139,7 +140,7 @@ results = isREST.intersight_call(**options)
 print("Status Code: " + str(results.status_code))
 print(json.dumps(results.json(), indent=4))
 
-#-- NOTE: intersight_call Returns a "requests.Response" Type --#
+#-- NOTE: intersight_call Returns a "requests.Response" Object --#
 
 # DELETE EXAMPLE
 #-- Option #1: DELETE by Object MOID --#
@@ -168,7 +169,7 @@ options = {
 results = isREST.intersight_call(**options)
 print("Status Code: " + str(results.status_code))
 
-#-- NOTE: intersight_call Returns a "requests.Response" Type --#
+#-- NOTE: intersight_call Returns a "requests.Response" Object --#
 ```
 
 ### See package source for more details...
