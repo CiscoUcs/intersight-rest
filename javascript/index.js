@@ -59,8 +59,7 @@ const setPrivateKey = function set_privateKey(prvKey) {
  * @return {string}         Base64 formatted string.
  */
 function getSHA256Digest(data) {
-    // return digest = crypto.createHash('sha256').update(JSON.stringify(data), 'utf8').digest();
-    return digest = crypto.createHash('sha256').update(data, 'utf8').digest();
+    return digest = crypto.createHash('sha256').update(data, 'utf8').digest().toString('base64');
 }
 
 /**
@@ -282,7 +281,7 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
     var authHeader = {
         'Date' : currDate,
         'Host' : targetHost,
-        'Digest' : 'SHA-256=' + b64BodyDigest.toString('base64')
+        'Digest' : 'SHA-256=' + b64BodyDigest
     };
 
     var stringToSign = prepStringToSign(requestTarget, authHeader);
@@ -290,11 +289,11 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
     var headerAuth = getAuthHeader(authHeader, b64SignedMsg);
 
     // Generate the HTTP requests header
-    var request_header = {
+    var reqHeader = {
         'Accept':           `application/json`,
         'Host':             `${targetHost}`,
         'Date':             `${currDate}`,
-        'Digest':           `SHA-256=${b64BodyDigest.toString('base64')}`,
+        'Digest':           `SHA-256=${b64BodyDigest}`,
         'Authorization':    `${headerAuth}`,
     };
 
@@ -304,7 +303,7 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
         url: targetUrl,
         qs: queryParams,
         body: bodyString,
-        headers: request_header,
+        headers: reqHeader,
         resolveWithFullResponse: true,
         proxy: proxy
     };
