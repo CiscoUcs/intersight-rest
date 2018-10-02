@@ -65,8 +65,9 @@ def get_sha256_digest(data):
     :param data: data string set by user
     :return: instance of digest object
     """
+    
     digest = SHA256.new()
-    digest.update(data)
+    digest.update(data.encode())
 
     return digest
 
@@ -180,6 +181,7 @@ def intersight_call(http_method="", resource_path="", query_params={}, body={}, 
     target_path = urlparse(host).path
     query_path = ""
     method = http_method.upper()
+    bodyString = ""
 
     # Verify an accepted HTTP verb was chosen
     if(method not in ['GET','POST','PATCH','DELETE']):
@@ -203,6 +205,8 @@ def intersight_call(http_method="", resource_path="", query_params={}, body={}, 
             raise TypeError('The *proxy* value must be of type "<str>"')
         else:
             https_proxy = { "https": proxy }
+    else:
+        https_proxy = {}
 
     # Verify the MOID is not null & of proper length
     if(moid != None and len(moid.encode('utf-8')) != 24):
@@ -235,6 +239,10 @@ def intersight_call(http_method="", resource_path="", query_params={}, body={}, 
     if(method != "POST" and moid != None):
         resource_path += "/" + moid
 
+    # Check for GET request to properly form body
+    if(method != "GET"):
+        bodyString = json.dumps(body)
+
     # Concatenate URLs for headers
     target_url = host + resource_path
     request_target = method + " " + target_path + resource_path + query_path
@@ -243,7 +251,7 @@ def intersight_call(http_method="", resource_path="", query_params={}, body={}, 
     cdate = get_gmt_date()
 
     # Generate the body digest
-    body_digest = get_sha256_digest(json.dumps(body).encode())
+    body_digest = get_sha256_digest(bodyString)
     b64_body_digest = b64encode(body_digest.digest())
 
     # Generate the authorization header
@@ -254,7 +262,7 @@ def intersight_call(http_method="", resource_path="", query_params={}, body={}, 
     }
 
     string_to_sign = prepare_str_to_sign(request_target, auth_header)
-    auth_digest = get_sha256_digest(string_to_sign.encode())
+    auth_digest = get_sha256_digest(string_to_sign)
     b64_signed_msg = get_rsasig_b64encode(auth_digest)
     auth_header = get_auth_header(auth_header, b64_signed_msg)
 
@@ -272,7 +280,7 @@ def intersight_call(http_method="", resource_path="", query_params={}, body={}, 
         method = method,
         url = target_url,
         headers = request_header,
-        json = body,
+        data = bodyString,
         params = urlencode(query_params, quote_via=quote)
     )
 

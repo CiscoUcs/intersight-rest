@@ -59,7 +59,8 @@ const setPrivateKey = function set_privateKey(prvKey) {
  * @return {string}         Base64 formatted string.
  */
 function getSHA256Digest(data) {
-    return digest = crypto.createHash('sha256').update(JSON.stringify(data), 'utf8').digest();
+    // return digest = crypto.createHash('sha256').update(JSON.stringify(data), 'utf8').digest();
+    return digest = crypto.createHash('sha256').update(data, 'utf8').digest();
 }
 
 /**
@@ -87,12 +88,19 @@ function getRSASigSHA256b64Encode(data) {
  * @return {string}             Concatenated authorization header.
  */
 function getAuthHeader(hdrs, signedMsg) {
+    var keys = [];
+
     var authStr = "Signature";
 
     authStr = authStr + " " + "keyId=\"" + publicKey + "\"," + "algorithm=\"" + digestAlgorithm + "\"," + "headers=\"(request-target)";
 
-    for (var key in hdrs) {
-        authStr = authStr + " " + key.toLowerCase();
+    for (var objKey in hdrs) {
+        keys.push(objKey);
+    }
+    keys.sort();
+
+    for (var i = 0; i < keys.length; i++) {
+        authStr = authStr + " " + keys[i].toLowerCase();
     }
     authStr = authStr + "\"";
 
@@ -110,17 +118,20 @@ function getAuthHeader(hdrs, signedMsg) {
  * @return {string}             Concatenated header authorization string.
  */
 function prepStringToSign(reqTarget, hdrs) {
+    var keys = [];
+
     var ss = "(request-target): " + reqTarget.toLowerCase() + "\n";
 
-    var length = Object.keys(hdrs).length;
+    for (var objKey in hdrs) {
+        keys.push(objKey);
+    }
+    keys.sort();
 
-    var count = 0;
-    for (var key in hdrs) {
-        ss = ss + key.toLowerCase() + ": " + hdrs[key];
-        if(count < length-1) {
+    for (var i = 0; i < keys.length; i++) {
+        ss = ss + keys[i].toLowerCase() + ": " + hdrs[keys[i]];
+        if(i < keys.length-1) {
             ss = ss + "\n";
         }
-        count++;
     }
 
     return ss;
@@ -134,19 +145,6 @@ function prepStringToSign(reqTarget, hdrs) {
  */
 function getGMTDate() {
     return new Date().toGMTString();
-}
-
-/**
- * Callback for sending HTTP requests.
- * @function makeRequest
- * @private
- * @param  {Object} requestData     Requests formatted object.
- * @return {Object}                 Javascript Object from JSON response.
- */
-function makeRequest(requestData) {
-    return request(requestData).then(response => {
-        return response.toJSON();
-    });
 }
 
 /**
@@ -196,6 +194,7 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
     var targetPath = host.pathname;
     var queryPath = "";
     var method = httpMethod.toUpperCase();
+    var bodyString = "";
 
     // Verify an accepted HTTP verb was chosen
     if(!['GET','POST','PATCH','DELETE'].includes(method)) {
@@ -242,6 +241,7 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
         queryPath = "?" + qs.stringify(queryParams);
     }
 
+    // Handle PATCH/DELETE by Object "name" instead of "moid"
     if(method == "PATCH" || method == "DELETE") {
         if(moid == null) {
             if(name != null) {
@@ -258,8 +258,14 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
         }
     }
 
+    // Check for moid and concatenate onto URL
     if (method != "POST" && moid != null) {
         resourcePath += "/" + moid;
+    }
+
+    // Check for GET request to properly form body
+    if (method != "GET") {
+        bodyString = JSON.stringify(body);
     }
 
     // Concatenate URLs for headers
@@ -270,7 +276,7 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
     var currDate = getGMTDate();
 
     // Generate the body digest
-    var b64BodyDigest = getSHA256Digest(body);
+    var b64BodyDigest = getSHA256Digest(bodyString);
 
     // Generate the authorization header
     var authHeader = {
@@ -297,14 +303,14 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
         method: method,
         url: targetUrl,
         qs: queryParams,
-        body: JSON.stringify(body),
+        body: bodyString,
         headers: request_header,
         resolveWithFullResponse: true,
         proxy: proxy
     };
-
+    
     // Make HTTP request & return a Javascript Promise
-    return makeRequest(requestOptions);
+    return request(requestOptions);
 }
 
 // Export the module functions

@@ -53,7 +53,7 @@ options = {
 
 /* Send GET Request */
 isREST.intersightREST(options).then(response => {
-    console.log(response.body);
+    console.log(response.toJSON().body);
 }).catch(err => {
     console.log('Error: ', err);
 });
@@ -98,7 +98,7 @@ options = {
 
 /* Send POST Request */
 isREST.intersightREST(options).then(response => {
-    console.log(response.body);
+    console.log(response.toJSON().body);
 }).catch(err => {
     console.log('Error: ', err);
 });
@@ -139,7 +139,7 @@ options = {
 
 /* Send PATCH Request */
 isREST.intersightREST(options).then(response => {
-    console.log(response.body);
+    console.log(response.toJSON().body);
 }).catch(err => {
     console.log('Error: ', err);
 

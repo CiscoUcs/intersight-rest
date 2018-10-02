@@ -5,14 +5,14 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="intersight-rest",
-    version="1.1.6",
+    version="1.1.7",
     author="Matthew Garrett",
-    author_email="mgarrett0402@gmail.com",
+    author_email="matgarre@cisco.com",
     py_modules=['intersight_rest',],
     description="Cisco Intersight Python REST Module",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/dcmattyg/intersight-rest",
+    url="https://github.com/CiscoUcs/intersight-rest",
     packages=setuptools.find_packages(),
     install_requires=[
         'six >= 1.11.0',

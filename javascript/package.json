@@ -2,11 +2,11 @@
   "name": "intersight-rest",
   "repository": {
     "type": "git",
-    "url": "git://github.com/dcmattyg/intersight-rest.git"
+    "url": "git://github.com/CiscoUcs/intersight-rest.git"
   },
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Cisco Intersight NodeJS REST Module",
-  "homepage": "git://github.com/dcmattyg/intersight-rest",
+  "homepage": "git://github.com/CiscoUcs/intersight-rest",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -17,10 +17,11 @@
   ],
   "author": {
     "name": "Matthew Garrett",
-    "email": "mgarrett0402@gmail.com"
+    "email": "matgarret@cisco.com"
   },
   "license": "Cisco Sample Code License, Version 1.0",
   "dependencies": {
+    "npm": "^6.4.1",
     "qs": "^6.5.2",
     "request": "^2.88.0",
     "request-promise": "^4.2.2",
