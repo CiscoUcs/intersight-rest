@@ -325,10 +325,13 @@ const intersightREST = async function intersight_call({
     return request(requestOptions);
 }
 
+const get = (resourcePath) => intersightREST({ httpMethod: 'get', resourcePath });
+
 // Export the module functions
 module.exports = {
     setAccountUri,
-    intersightREST,
     setPublicKey,
     setPrivateKey,
+    get,
+    intersightREST,
 };
