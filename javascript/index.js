@@ -325,7 +325,9 @@ const intersightREST = async function intersight_call({
     return request(requestOptions);
 }
 
-const get = (resourcePath) => intersightREST({ httpMethod: 'get', resourcePath });
+const get = (resourcePath, params) => intersightREST({
+    httpMethod: 'get', resourcePath, json: true, queryParams: params
+}).then(r => r.body);
 
 // Export the module functions
 module.exports = {
