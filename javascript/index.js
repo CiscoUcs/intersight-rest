@@ -4,14 +4,14 @@
  * Author: Matthew Garrett
  * Contributors: David Soper, Chris Gascoigne, John McDonough
  * Email: mgarrett0402@gmail.com
- * 
+ *
  * Copyright (c) 2018 Cisco and/or its affiliates.
  * This software is licensed to you under the terms of the Cisco Sample
  * Code License, Version 1.0 (the "License"). You may obtain a copy of the
  * License at:
- * 
+ *
  *              https://developer.cisco.com/docs/licenses
- * 
+ *
  * All use of the material herein must be in accordance with the terms of
  * the License. All rights not expressly granted by the License are
  * reserved. Unless required by applicable law or agreed to separately in
@@ -31,15 +31,22 @@ const digestAlgorithm = 'rsa-sha256';
 var privateKey = null;
 var publicKey = null;
 
+const setAccountUri = (uri) => {
+    Object.assign(host, url.parse(`${uri}/api/v1`));
+};
+
 /**
  * Set RSA public key.
  * @function set_publicKey
  * @public
  * @param  {String} pubKey  RSA public key.
  */
-const setPublicKey = function set_publicKey(pubKey) {
+const setPublicKey = (pubKey) => {
+    if (pubKey && pubKey.endsWith('\n')) {
+        pubKey = pubKey.substr(0, pubKey.length - 1);
+    }
     publicKey = pubKey;
-}
+};
 
 /**
  * Set RSA private key.
@@ -47,9 +54,12 @@ const setPublicKey = function set_publicKey(pubKey) {
  * @public
  * @param  {String} prvKey  RSA private key.
  */
-const setPrivateKey = function set_privateKey(prvKey) {
+const setPrivateKey = (prvKey) => {
+    if (prvKey && prvKey.endsWith('\n')) {
+        prvKey = prvKey.substr(0, prvKey.length - 1);
+    }
     privateKey = prvKey;
-}
+};
 
 /**
  * Generates a SHA256 digest from a JSON Object.
@@ -87,12 +97,9 @@ function getRSASigSHA256b64Encode(data) {
  * @return {string}             Concatenated authorization header.
  */
 function getAuthHeader(hdrs, signedMsg) {
-    var keys = [];
+    let authStr = `Signature keyId="${publicKey}", algorithm="${digestAlgorithm}", headers="(request-target)`;
 
-    var authStr = "Signature";
-
-    authStr = authStr + " " + "keyId=\"" + publicKey + "\"," + "algorithm=\"" + digestAlgorithm + "\"," + "headers=\"(request-target)";
-
+    const keys = [];
     for (var objKey in hdrs) {
         keys.push(objKey);
     }
@@ -102,9 +109,7 @@ function getAuthHeader(hdrs, signedMsg) {
         authStr = authStr + " " + keys[i].toLowerCase();
     }
     authStr = authStr + "\"";
-
     authStr = authStr + "," + "signature=\"" + signedMsg + "\"";
-
     return authStr;
 }
 
@@ -128,7 +133,7 @@ function prepStringToSign(reqTarget, hdrs) {
 
     for (var i = 0; i < keys.length; i++) {
         ss = ss + keys[i].toLowerCase() + ": " + hdrs[keys[i]];
-        if(i < keys.length-1) {
+        if (i < keys.length - 1) {
             ss = ss + "\n";
         }
     }
@@ -169,7 +174,7 @@ async function getMoidByName(resourcePath, targetName) {
 
     var response = await intersightREST(options);
 
-    if(JSON.parse(response.body).Results != null) {
+    if (JSON.parse(response.body).Results != null) {
         locatedMoid = JSON.parse(response.body).Results[0].Moid;
     } else {
         return Promise.reject(`Object with name "${targetName}" not found!`);
@@ -188,7 +193,15 @@ async function getMoidByName(resourcePath, targetName) {
  * @param  {String} moid            Intersight object MOID.
  * @return {Promise}                Javascript Promise for HTTP response body.
  */
-const intersightREST = async function intersight_call({httpMethod="", resourcePath="", queryParams={}, body={}, moid=null, name=null, proxy=null} = {}) {
+const intersightREST = async function intersight_call({
+    httpMethod = "",
+    resourcePath = "",
+    queryParams = {},
+    body = {},
+    moid = null,
+    name = null,
+    proxy = null
+} = {}) {
     var targetHost = host.hostname;
     var targetPath = host.pathname;
     var queryPath = "";
@@ -196,55 +209,55 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
     var bodyString = "";
 
     // Verify an accepted HTTP verb was chosen
-    if(!['GET','POST','PATCH','DELETE'].includes(method)) {
+    if (!['GET', 'POST', 'PATCH', 'DELETE'].includes(method)) {
         return Promise.reject('Please select a valid HTTP verb (GET/POST/PATCH/DELETE)');
     }
 
     // Verify the resource path isn't empy & is a valid String Object
-    if(resourcePath != "" && resourcePath.constructor != String) {
+    if (resourcePath != "" && resourcePath.constructor != String) {
         return Promise.reject('The *resourcePath* value is required and must be of type "String"');
     }
 
     // Verify the query parameters isn't empy & is a valid Javascript Object
-    if(Object.keys(queryParams).length != 0 && queryParams.constructor != Object) {
+    if (Object.keys(queryParams).length != 0 && queryParams.constructor != Object) {
         return Promise.reject('The *queryParams* value must be of type "Object"');
     }
 
     // Verify the body isn't empy & is a valid Javascript Object
-    if(Object.keys(body).length != 0 && body.constructor != Object) {
+    if (Object.keys(body).length != 0 && body.constructor != Object) {
         return Promise.reject('The *body* value must be of type "Object"');
     }
 
     // Verify that proxy is either null, or is a valid String Object
-    if(proxy != null && proxy.constructor != String) {
+    if (proxy != null && proxy.constructor != String) {
         return Promise.reject('The *proxy* value must be of type "String"');
     }
 
     // Verify the MOID is not null & of proper length
-    if(moid != null && Buffer.byteLength(moid, 'utf-8') != 24) {
+    if (moid != null && Buffer.byteLength(moid, 'utf-8') != 24) {
         return Promise.reject('Invalid *moid* value!');
     }
 
     // Verify the public key is set
-    if(publicKey == null) {
+    if (publicKey == null) {
         return Promise.reject('Public Key not set!');
     }
 
     // Verify the private key is set
-    if(privateKey == null) {
+    if (privateKey == null) {
         return Promise.reject('Private Key not set!');
     }
 
     // Set additional parameters based on HTTP Verb
-    if(Object.keys(queryParams).length != 0) {
+    if (Object.keys(queryParams).length != 0) {
         queryPath = "?" + qs.stringify(queryParams);
     }
 
     // Handle PATCH/DELETE by Object "name" instead of "moid"
-    if(method == "PATCH" || method == "DELETE") {
-        if(moid == null) {
-            if(name != null) {
-                if(name.constructor == String) {
+    if (method == "PATCH" || method == "DELETE") {
+        if (moid == null) {
+            if (name != null) {
+                if (name.constructor == String) {
                     moid = await getMoidByName(resourcePath, name);
                 }
                 else {
@@ -279,9 +292,9 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
 
     // Generate the authorization header
     var authHeader = {
-        'Date' : currDate,
-        'Host' : targetHost,
-        'Digest' : 'SHA-256=' + b64BodyDigest
+        'Date': currDate,
+        'Host': targetHost,
+        'Digest': 'SHA-256=' + b64BodyDigest
     };
 
     var stringToSign = prepStringToSign(requestTarget, authHeader);
@@ -290,11 +303,11 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
 
     // Generate the HTTP requests header
     var reqHeader = {
-        'Accept':           `application/json`,
-        'Host':             `${targetHost}`,
-        'Date':             `${currDate}`,
-        'Digest':           `SHA-256=${b64BodyDigest}`,
-        'Authorization':    `${headerAuth}`,
+        'Accept': `application/json`,
+        'Host': `${targetHost}`,
+        'Date': `${currDate}`,
+        'Digest': `SHA-256=${b64BodyDigest}`,
+        'Authorization': `${headerAuth}`,
     };
 
     // Generate the HTTP request options
@@ -307,14 +320,20 @@ const intersightREST = async function intersight_call({httpMethod="", resourcePa
         resolveWithFullResponse: true,
         proxy: proxy
     };
-    
+
     // Make HTTP request & return a Javascript Promise
     return request(requestOptions);
 }
 
+const get = (resourcePath, params) => intersightREST({
+    httpMethod: 'get', resourcePath, json: true, queryParams: params
+}).then(r => JSON.parse(r.body));
+
 // Export the module functions
 module.exports = {
-    intersightREST,
+    setAccountUri,
     setPublicKey,
     setPrivateKey,
+    get,
+    intersightREST,
 };
